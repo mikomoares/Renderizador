@@ -52,5 +52,5 @@ else:
     opcoes = [element for element in EXEMPLOS if element[0] == escolha][0]
 
 # Roda renderizador com os parâmetros necessário para o exemplo escolhido
-subprocess.call(["python3", "renderizador/renderizador.py"] + opcoes[1:])
+subprocess.call(["python", "renderizador/renderizador.py"] + opcoes[1:])
     

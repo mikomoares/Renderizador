@@ -4,7 +4,7 @@
 """
 Biblioteca Gráfica / Graphics Library.
 
-Desenvolvido por: <SEU NOME AQUI>
+Desenvolvido por: Gabriel Duarte & Michel Moraes
 Disciplina: Computação Gráfica
 Data:
 """
@@ -34,32 +34,8 @@ class GL:
             [0, 0, 1, 0],
             [0, 0, 0, 1]
         ])
-
-    @staticmethod
-    def inside(tri, x, y):
-        # print(f'X:{x}, Y:{y}, TRI:{tri}')
-        x+=0.5
-        y+=0.5
-        # x0, y0, z0 = tri[0], tri[1], tri[2]
-        # x1, y1, z1 = tri[3], tri[4], tri[5]
-        # x2, y2, z2 = tri[6], tri[7], tri[8]
-
-        x0 = tri[0][0]
-        y0 = tri[0][1]
-        
-        x1 = tri[1][0]
-        y1 = tri[1][1]
-
-        x2 = tri[2][0]
-        y2 = tri[2][1]
-
-        L1 = (y1-y0)*x - (x1-x0)*y + y0*(x1-x0) - x0*(y1-y0)
-        L2 = (y2-y1)*x - (x2-x1)*y + y1*(x2-x1) - x1*(y2-y1)
-        L3 = (y0-y2)*x - (x0-x2)*y + y2*(x0-x2) - x2*(y0-y2)
-
-        # print(L1, L2, L3)
-
-        return L1 >= 0 and L2 >= 0 and L3 >= 0 
+        GL.zBuffer = [[None for x in range(GL.width)] for y in range(GL.height)]
+        GL.pilha = []
 
     @staticmethod
     def transform_point(points):
@@ -100,14 +76,15 @@ class GL:
             b=int(colors['diffuseColor'][2]*255)
             
             tri = [
-                [point[p][0],point[p][1]],
-                [point[p+1][0],point[p+1][1]],
-                [point[p+2][0],point[p+2][1]],
+                [point[p][0],point[p][1], point[p][2]],
+                [point[p+1][0],point[p+1][1], point[p+1][2]],
+                [point[p+2][0],point[p+2][1], point[p+2][2]],
             ]
 
             for x in range(GL.width):
                 for y in range(GL.height):
-                    if GL.inside(tri, x ,y):
+
+                    if GL.inside(tri, x ,y)[0]:
                         # gpu.GPU.set_pixel(x, y, r, g, b)
                         gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])  # altera pixel
 
@@ -226,6 +203,12 @@ class GL:
                                             [0,0,0,1]])
 
         GL.model_world = translation_matrix.dot(rotation_matrix).dot(scale_matrix)
+
+        if (len(GL.pilha) > 1):
+            GL.model_world = np.matmul(GL.pilha[-1], GL.model_world)
+
+        GL.pilha.append(GL.model_world)
+
         GL.matrix_mvp = GL.perspectiva.dot(GL.lookat).dot(GL.model_world)
 
 
@@ -240,6 +223,9 @@ class GL:
         # pilha implementada.
 
         # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
+        if (len(GL.pilha) > 0):
+            GL.pilha.pop()
+        
         print("Saindo de Transform")
 
     @staticmethod
@@ -276,19 +262,19 @@ class GL:
             b=int(colors['diffuseColor'][2]*255)
 
             tri = [
-                [point[i + 2][0], point[i + 2][1]],
-                [point[i + 1][0], point[i + 1][1]], 
-                [point[i][0], point[i][1]], 
+                [point[i + 2][0], point[i + 2][1], point[i + 2][2]],
+                [point[i + 1][0], point[i + 1][1], point[i + 1][2]], 
+                [point[i][0], point[i][1], point[i][2]], 
             ]
             if i % 2 == 0: 
                 tri = [
-                    [point[i][0], point[i][1]], 
-                    [point[i + 1][0], point[i + 1][1]], 
-                    [point[i + 2][0], point[i + 2][1]], 
+                    [point[i][0], point[i][1], point[i][2]], 
+                    [point[i + 1][0], point[i + 1][1], point[i + 1][2]], 
+                    [point[i + 2][0], point[i + 2][1], point[i + 2][2]],
                     ]
             for x in range(GL.width):
                 for y in range(GL.height):
-                    if GL.inside(tri, x ,y):
+                    if GL.inside(tri, x ,y)[0]:
                         # gpu.GPU.set_pixel(x, y, r, g, b)
                         gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])  # altera pixel
 
@@ -324,19 +310,19 @@ class GL:
             b=int(colors['diffuseColor'][2]*255)
 
             tri = [
-                [point[index[i + 2]][0], point[index[i + 2]][1]], 
-                [point[index[i + 1]][0], point[index[i + 1]][1]], 
-                [point[index[i]][0], point[index[i]][1]], 
+                [point[index[i + 2]][0], point[index[i + 2]][1], point[index[i + 2]][2]], 
+                [point[index[i + 1]][0], point[index[i + 1]][1], point[index[i + 1]][2]], 
+                [point[index[i]][0], point[index[i]][1], point[index[i]][2]], 
             ]
             if i % 2 == 0: 
                 tri = [
-                    [point[index[i]][0], point[index[i]][1]], 
-                    [point[index[i + 1]][0], point[index[i + 1]][1]], 
-                    [point[index[i + 2]][0], point[index[i + 2]][1]], 
+                    [point[index[i]][0], point[index[i]][1], point[index[i]][2]], 
+                    [point[index[i + 1]][0], point[index[i + 1]][1], point[index[i + 1]][2]], 
+                    [point[index[i + 2]][0], point[index[i + 2]][1], point[index[i + 2]][2]], 
                     ]
             for x in range(GL.width):
                 for y in range(GL.height):
-                    if GL.inside(tri, x ,y):
+                    if GL.inside(tri, x ,y)[0]:
                         # gpu.GPU.set_pixel(x, y, r, g, b)
                         gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])  # altera pixel
 
@@ -396,6 +382,25 @@ class GL:
                         gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])  # altera pixel
 
     @staticmethod
+    def inside(vertices, x, y):
+        x1, x2, x3 = vertices[0][0][0], vertices[1][0][0], vertices[2][0][0]
+        y1, y2, y3 = vertices[0][1][0], vertices[1][1][0], vertices[2][1][0]
+        z1, z2, z3 = vertices[0][2][0], vertices[1][2][0], vertices[2][2][0]
+
+        L1 = (y2-y1)*x - (x2-x1)*y + y1*(x2-x1) - x1*(y2-y1)
+        L2 = (y3-y2)*x - (x3-x2)*y + y2*(x3-x2) - x2*(y3-y2)
+        L3 = (y1-y3)*x - (x1-x3)*y + y3*(x1-x3) - x3*(y1-y3)
+
+        alpha = (-(x - x2) * (y3 - y2) + (y - y2) * (x3 - x2)) / (-(x1 - x2) * (y3 - y2) + (y1 - y2) * (x3 - x2))    
+        beta  = (-(x - x3) * (y1 - y3) + (y - y3) * (x1 - x3)) / (-(x2 - x3) * (y1 - y3) + (y2 - y3) * (x1 - x3))
+        gamma = 1 - (alpha + beta)
+        z = 1 / (alpha * (1 / z1) + beta * (1 / z2) + gamma * (1 / z3))
+
+        insido = (L1 >= 0 and L2 >= 0 and L3 >= 0)
+        return [insido, alpha, beta, gamma, z]
+
+
+    @staticmethod
     def indexedFaceSet(coord, coordIndex, colorPerVertex, color, colorIndex,
                        texCoord, texCoordIndex, colors, current_texture):        
         """Função usada para renderizar IndexedFaceSet."""
@@ -433,9 +438,108 @@ class GL:
             print("\t Dimensões da image = {0}".format(image.shape))
         print("IndexedFaceSet : colors = {0}".format(colors))  # imprime no terminal as cores
 
-        # Exemplo de desenho de um pixel branco na coordenada 10, 10
-        gpu.GPU.draw_pixels([10, 10], gpu.GPU.RGB8, [255, 255, 255])  # altera pixel
+        # # Exemplo de desenho de um pixel branco na coordenada 10, 10
+        # gpu.GPU.draw_pixels([10, 10], gpu.GPU.RGB8, [255, 255, 255])  # altera pixel
 
+        point = GL.transform_point(coord)
+        cor = []
+        tri = []
+
+        if colorPerVertex and colorIndex and color:
+            cores = []
+            for c in range(0, len(color), 3): 
+                cores.append([color[c], color[c + 1], color[c + 2]])
+
+            for i in range(len(coordIndex)):
+                if coordIndex[i] < 0 or colorIndex[i] < 0:
+                    for x in range(GL.width):
+                        for y in range(GL.height):
+                            res = GL.inside(tri, x, y)
+                            is_inside, alpha, beta, gamma, z = res[0], res[1], res[2], res[3], res[4]    
+
+                            r = int(colors["diffuseColor"][0]*255)
+                            g = int(colors["diffuseColor"][1]*255)
+                            b = int(colors["diffuseColor"][2]*255)
+                            
+                            if is_inside:
+                                if colorPerVertex and cor:
+                                    r = (cor[0][0] * alpha + cor[1][0] * beta + cor[2][0] * gamma) * 255
+                                    g = (cor[0][1] * alpha + cor[1][1] * beta + cor[2][1] * gamma) * 255
+                                    b = (cor[0][2] * alpha + cor[1][2] * beta + cor[2][2] * gamma) * 255
+                                
+                                if (GL.zBuffer[y][x]):
+                                    if (z < GL.zBuffer[y][x]):
+                                        GL.zBuffer[y][x] = z
+                                        gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])  
+                                else:
+                                    GL.zBuffer[y][x] = z
+                                    gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])
+
+                    tri = []
+                    cor = []
+                else:
+                    cor.append(cores[colorIndex[i]])
+                    tri.append(point[coordIndex[i]])
+
+        elif (texCoord and texCoordIndex):
+            p_tex = []
+            for p in range(0, len(texCoord), 2):
+                p_tex.append([texCoord[p], texCoord[p+1]])
+            tex = []
+
+            for i in range(len(coordIndex)):
+                if coordIndex[i] < 0:
+                    for x in range(GL.width):
+                        for y in range(GL.height):
+                            res = GL.inside(tri, x, y)
+                            is_inside, alpha, beta, gamma, z = res[0], res[1], res[2], res[3], res[4]
+
+                            r = int(colors["diffuseColor"][0]*255)
+                            g = int(colors["diffuseColor"][1]*255)
+                            b = int(colors["diffuseColor"][2]*255)
+                            
+                            if is_inside:
+                                tex_x = (tex[0][0] * alpha + tex[1][0] * beta + tex[2][0] * gamma) * image.shape[0]
+                                tex_y = (tex[0][1] * alpha + tex[1][1] * beta + tex[2][1] * gamma) * image.shape[1]
+                                r, g, b, a = image[int(-tex_y)][int(tex_x)]
+                                
+                                if (GL.zBuffer[y][x]):
+                                    if (z < GL.zBuffer[y][x]):
+                                        GL.zBuffer[y][x] = z
+                                        gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])  
+                                else:
+                                    GL.zBuffer[y][x] = z
+                                    gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])
+
+                    tri = []
+                    tex = []
+                else:
+                    tri.append(point[coordIndex[i]])
+                    tex.append(p_tex[texCoordIndex[i]])
+        else:
+            
+            for i in range(len(coordIndex)):
+                if coordIndex[i] < 0:
+                    for x in range(GL.width):
+                        for y in range(GL.height):
+                            res = GL.inside(tri, x, y)
+                            is_inside, alpha, beta, gamma, z = res[0], res[1], res[2], res[3], res[4]
+
+                            r = int(colors["diffuseColor"][0]*255)
+                            g = int(colors["diffuseColor"][1]*255)
+                            b = int(colors["diffuseColor"][2]*255)
+                            
+                            if is_inside:
+                                if (GL.zBuffer[y][x]):
+                                    if (z < GL.zBuffer[y][x]):
+                                        GL.zBuffer[y][x] = z
+                                        gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])  
+                                else:
+                                    GL.zBuffer[y][x] = z
+                                    gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])
+                    tri = []
+                else:
+                    tri.append(point[coordIndex[i]])
 
     # Para o futuro (Não para versão atual do projeto.)
     def vertex_shader(self, shader):
