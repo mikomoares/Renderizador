@@ -58,5 +58,6 @@ else:
     opcoes = [element for element in TESTE if element[0] == escolha][0]
 
 # Roda renderizador com os parâmetros necessário para o exemplo escolhido
+    
 print("Abrindo arquivo: {0}".format(opcoes[2]))
 subprocess.call(["python3", "renderizador/renderizador.py"] + opcoes[1:])
