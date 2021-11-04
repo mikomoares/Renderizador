@@ -40,6 +40,8 @@ class GL:
         ])
         GL.zBuffer = [[None for x in range(GL.width)] for y in range(GL.height)]
         GL.pilha = []
+        GL.anim = False
+        
 
     @staticmethod
     def transform_point(points):
@@ -85,9 +87,9 @@ class GL:
                 [point[p+2][0],point[p+2][1], point[p+2][2]],
 
             ]
-
-            for x in range(GL.width):
-                for y in range(GL.height):
+            max_min = GL.Max_min_tri(tri)
+            for x in range(max_min[0], max_min[1]):
+                for y in range(max_min[2], max_min[3]):
                     if GL.inside(tri, x ,y)[0]:
                         # gpu.GPU.set_pixel(x, y, r, g, b)
                         gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])  # altera pixel
@@ -256,13 +258,9 @@ class GL:
 
         # Exemplo de desenho de um pixel branco na coordenada 10, 10
         # gpu.GPU.draw_pixels([10, 10], gpu.GPU.RGB8, [255, 255, 255])  # altera pixel
-
         point = GL.transform_point(point)
         tri = []
         for i in range(stripCount[0] - 2):
-            r=int(colors['diffuseColor'][0]*255)
-            g=int(colors['diffuseColor'][1]*255)
-            b=int(colors['diffuseColor'][2]*255)
 
             tri = [
                 [point[i + 2][0], point[i + 2][1], point[i + 2][2]],
@@ -275,10 +273,15 @@ class GL:
                     [point[i + 1][0], point[i + 1][1], point[i + 1][2]], 
                     [point[i + 2][0], point[i + 2][1], point[i + 2][2]],
                     ]
-            for x in range(GL.width):
-                for y in range(GL.height):
+
+            r=int(colors['diffuseColor'][0]*255)
+            g=int(colors['diffuseColor'][1]*255)
+            b=int(colors['diffuseColor'][2]*255)
+
+            max_min = GL.Max_min_tri(tri)
+            for x in range(max_min[0], max_min[1]):
+                for y in range(max_min[2], max_min[3]):
                     if GL.inside(tri, x ,y)[0]:
-                        # gpu.GPU.set_pixel(x, y, r, g, b)
                         gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])  # altera pixel
 
     @staticmethod
@@ -323,8 +326,9 @@ class GL:
                     [point[index[i + 1]][0], point[index[i + 1]][1], point[index[i + 1]][2]], 
                     [point[index[i + 2]][0], point[index[i + 2]][1], point[index[i + 2]][2]], 
                     ]
-            for x in range(GL.width):
-                for y in range(GL.height):
+            max_min = GL.Max_min_tri(tri)
+            for x in range(max_min[0], max_min[1]):
+                for y in range(max_min[2], max_min[3]):
                     if GL.inside(tri, x ,y)[0]:
                         # gpu.GPU.set_pixel(x, y, r, g, b)
                         gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])  # altera pixel
@@ -373,19 +377,20 @@ class GL:
                 [pontos[7], pontos[6], pontos[0]],
                 [pontos[7], pontos[1], pontos[0]] 
                 ]
-        
         for t in tri:
             r=int(colors['diffuseColor'][0]*255)
             g=int(colors['diffuseColor'][1]*255)
             b=int(colors['diffuseColor'][2]*255)
-            for x in range(GL.width):
-                for y in range(GL.height):
+            max_min = GL.Max_min_tri(t)
+            for x in range(max_min[0], max_min[1]):
+                for y in range(max_min[2], max_min[3]):
                     if GL.inside(t, x ,y):
                         # gpu.GPU.set_pixel(x, y, r, g, b)
                         gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])  # altera pixel
 
     @staticmethod
     def inside(vertices, x, y):
+        # print(f'\nINSIDE: \n{vertices}\n X: {x} \n Y: {y}')
         x1, x2, x3 = vertices[0][0][0], vertices[1][0][0], vertices[2][0][0]
         y1, y2, y3 = vertices[0][1][0], vertices[1][1][0], vertices[2][1][0]
         z1, z2, z3 = vertices[0][2][0], vertices[1][2][0], vertices[2][2][0]
@@ -394,11 +399,14 @@ class GL:
         L2 = (y3-y2)*x - (x3-x2)*y + y2*(x3-x2) - x2*(y3-y2)
         L3 = (y1-y3)*x - (x1-x3)*y + y3*(x1-x3) - x3*(y1-y3)
 
-        alpha = (-(x - x2) * (y3 - y2) + (y - y2) * (x3 - x2)) / (-(x1 - x2) * (y3 - y2) + (y1 - y2) * (x3 - x2))    
-        beta  = (-(x - x3) * (y1 - y3) + (y - y3) * (x1 - x3)) / (-(x2 - x3) * (y1 - y3) + (y2 - y3) * (x1 - x3))
-        gamma = 1 - (alpha + beta)
-        z = 1 / (alpha * (1 / z1) + beta * (1 / z2) + gamma * (1 / z3))
-
+        alpha, beta, gamma, z = 0, 0, 0, 0
+        
+        if (-(x1 - x2) * (y3 - y2) + (y1 - y2) * (x3 - x2)) != 0 or (-(x2 - x3) * (y1 - y3) + (y2 - y3) * (x1 - x3)) != 0:
+            alpha = (-(x - x2) * (y3 - y2) + (y - y2) * (x3 - x2)) / (-(x1 - x2) * (y3 - y2) + (y1 - y2) * (x3 - x2))    
+            beta  = (-(x - x3) * (y1 - y3) + (y - y3) * (x1 - x3)) / (-(x2 - x3) * (y1 - y3) + (y2 - y3) * (x1 - x3))
+            gamma = 1 - (alpha + beta)
+            z = 1 / (alpha * (1 / z1) + beta * (1 / z2) + gamma * (1 / z3))
+            
         insido = (L1 >= 0 and L2 >= 0 and L3 >= 0)
         return [insido, alpha, beta, gamma, z]
 
@@ -455,8 +463,9 @@ class GL:
 
             for i in range(len(coordIndex)):
                 if coordIndex[i] < 0 or colorIndex[i] < 0:
-                    for x in range(GL.width):
-                        for y in range(GL.height):
+                    max_min = GL.Max_min_tri(tri)
+                    for x in range(max_min[0], max_min[1]):
+                        for y in range(max_min[2], max_min[3]):
                             res = GL.inside(tri, x, y)
                             is_inside, alpha, beta, gamma, z = res[0], res[1], res[2], res[3], res[4]    
 
@@ -471,7 +480,7 @@ class GL:
                                     b = (cor[0][2] * alpha + cor[1][2] * beta + cor[2][2] * gamma) * 255
                                 
                                 if (GL.zBuffer[y][x]):
-                                    if (z < GL.zBuffer[y][x]):
+                                    if (z <= GL.zBuffer[y][x]):
                                         GL.zBuffer[y][x] = z
                                         gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])  
                                 else:
@@ -492,8 +501,9 @@ class GL:
 
             for i in range(len(coordIndex)):
                 if coordIndex[i] < 0:
-                    for x in range(GL.width):
-                        for y in range(GL.height):
+                    max_min = GL.Max_min_tri(tri)
+                    for x in range(max_min[0], max_min[1]):
+                        for y in range(max_min[2], max_min[3]):
                             res = GL.inside(tri, x, y)
                             is_inside, alpha, beta, gamma, z = res[0], res[1], res[2], res[3], res[4]
 
@@ -507,7 +517,7 @@ class GL:
                                 r, g, b, a = image[int(-tex_y)][int(tex_x)]
                                 
                                 if (GL.zBuffer[y][x]):
-                                    if (z < GL.zBuffer[y][x]):
+                                    if (z <= GL.zBuffer[y][x]):
                                         GL.zBuffer[y][x] = z
                                         gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])  
                                 else:
@@ -523,8 +533,9 @@ class GL:
             
             for i in range(len(coordIndex)):
                 if coordIndex[i] < 0:
-                    for x in range(GL.width):
-                        for y in range(GL.height):
+                    max_min = GL.Max_min_tri(tri)
+                    for x in range(max_min[0], max_min[1]):
+                        for y in range(max_min[2], max_min[3]):
                             res = GL.inside(tri, x, y)
                             is_inside, alpha, beta, gamma, z = res[0], res[1], res[2], res[3], res[4]
                             r = int(colors["diffuseColor"][0]*255)
@@ -532,13 +543,16 @@ class GL:
                             b = int(colors["diffuseColor"][2]*255)
                             
                             if is_inside:
-                                if (GL.zBuffer[y][x]):
-                                    if (z < GL.zBuffer[y][x]):
-                                        GL.zBuffer[y][x] = z
-                                        gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])  
-                                else:
-                                    GL.zBuffer[y][x] = z
+                                if GL.anim:
                                     gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])
+                                else:
+                                    if (GL.zBuffer[y][x]):
+                                        if (z <= GL.zBuffer[y][x]):
+                                            GL.zBuffer[y][x] = z
+                                            gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])  
+                                    else:
+                                        GL.zBuffer[y][x] = z
+                                        gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])
                     tri = []
                 else:
                     tri.append(point[coordIndex[i]])
@@ -554,6 +568,111 @@ class GL:
         # O print abaixo é só para vocês verificarem o funcionamento, DEVE SER REMOVIDO.
         print("Sphere : radius = {0}".format(radius)) # imprime no terminal o raio da esfera
         print("Sphere : colors = {0}".format(colors)) # imprime no terminal as cores
+        
+        count = 12
+        theta_list = []
+        for theta in range(0, 2 * (count) + 1, 1):
+            theta_list.append((theta/count)*math.pi)
+
+        phi_list = []
+        for phi in range(-count, count + 1, 1):
+            phi_list.append((phi/count) * math.pi / 2)
+
+        pontos = []
+
+        for n in range(len(phi_list) - 1):
+            for j in range(len(theta_list)):
+                x = radius * math.sin(phi_list[n]) * math.cos(theta_list[j])
+                y = radius * math.sin(phi_list[n]) * math.sin(theta_list[j])
+                z = radius * math.cos(phi_list[n])
+
+                x2 = radius * math.sin(phi_list[n + 1]) * math.cos(theta_list[j])
+                y2 = radius * math.sin(phi_list[n + 1]) * math.sin(theta_list[j])
+                z2 = radius * math.cos(phi_list[n + 1])
+
+                pontos.extend([x, y, z, x2, y2, z2])
+        
+        stripCount = [int(len(pontos)/3)]
+
+        point = GL.transform_point(pontos)
+        tri = []
+        for i in range(stripCount[0] - 2):
+
+            tri = [
+                [point[i + 2][0], point[i + 2][1], point[i + 2][2]],
+                [point[i + 1][0], point[i + 1][1], point[i + 1][2]], 
+                [point[i][0], point[i][1], point[i][2]], 
+            ]
+            if i % 2 == 0: 
+                tri = [
+                    [point[i][0], point[i][1], point[i][2]], 
+                    [point[i + 1][0], point[i + 1][1], point[i + 1][2]], 
+                    [point[i + 2][0], point[i + 2][1], point[i + 2][2]],
+                    ]
+            if GL.light['hasLight']:
+                x_list = [float(tri[0][0]), float(tri[1][0]), float(tri[2][0])]
+                y_list = [float(tri[0][1]), float(tri[1][1]), float(tri[2][1])]
+                z_list = [float(tri[0][2]), float(tri[1][2]), float(tri[2][2])]
+                
+                U = [
+                    x_list[2] - x_list[0],
+                    y_list[2] - y_list[0],
+                    z_list[2] - z_list[0],
+                ]
+                V = [
+                    x_list[1] - x_list[0],
+                    y_list[1] - y_list[0],
+                    z_list[1] - z_list[0],
+                ]
+                
+                N = np.cross(U, V)-1
+                
+                N = np.divide(N, np.linalg.norm(N))
+                
+                L = []
+                for dir in GL.light['direction']:
+                    L.append(dir * (-1))
+                    
+                NL = np.dot(N, L)
+                
+                ambient = []
+                diffuse = []
+                specular = []
+
+                for cor in colors["diffuseColor"]: 
+                    ambient.append(cor * (GL.light['ambientIntensity'] * colors["shininess"]))
+                    diffuse.append(cor * GL.light['intensity'] * NL)
+
+                a = np.add(np.array(L), np.array([0, 0, 1]))
+                b = np.divide(a, np.linalg.norm(a))  
+                c = (np.dot(b, N)) ** (colors["shininess"] * 128)
+                for x in colors["specularColor"]:
+                    specular.append(x * GL.light['ambientIntensity'] * c)
+
+                rgb = []
+                for i in range(len(GL.light['color'])):
+                    c =  (GL.light['color'][i] * (ambient[i] + diffuse[i] + specular[i])) + colors["emissiveColor"][i]
+                    rgb.append(c)
+                
+                r = rgb[0] * 255
+                g = rgb[1] * 255
+                b = rgb[2] * 255
+                        
+            max_min = GL.Max_min_tri(tri)
+            for x in range(max_min[0], max_min[1]):
+                for y in range(max_min[2], max_min[3]):
+                    res = GL.inside(tri, x, y)
+                    is_inside, alpha, beta, gamma, z = res[0], res[1], res[2], res[3], res[4]
+                    
+                    if is_inside:
+                        if GL.light['hasLight']:
+                            gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])
+                        else:
+                            r=int(colors['diffuseColor'][0]*255)
+                            g=int(colors['diffuseColor'][1]*255)
+                            b=int(colors['diffuseColor'][2]*255)
+                            gpu.GPU.draw_pixels([x, y], gpu.GPU.RGB8, [r, g, b])
+                 
 
     @staticmethod
     def navigationInfo(headlight):
@@ -581,6 +700,15 @@ class GL:
         print("DirectionalLight : color = {0}".format(color)) # imprime no terminal
         print("DirectionalLight : intensity = {0}".format(intensity)) # imprime no terminal
         print("DirectionalLight : direction = {0}".format(direction)) # imprime no terminal
+
+        GL.light = {
+            "hasLight": True,
+            "ambientIntensity" : ambientIntensity,
+            "color" : color,
+            "intensity" : intensity,
+            "direction" : direction
+        }
+
 
     @staticmethod
     def pointLight(ambientIntensity, color, intensity, location):
@@ -634,6 +762,7 @@ class GL:
         fraction_changed = (epoch % cycleInterval) / cycleInterval
 
         return fraction_changed
+    
 
     @staticmethod
     def splinePositionInterpolator(set_fraction, key, keyValue, closed):
@@ -653,9 +782,64 @@ class GL:
         print("SplinePositionInterpolator : closed = {0}".format(closed))
 
         # Abaixo está só um exemplo de como os dados podem ser calculados e transferidos
-        value_changed = [0.0, 0.0, 0.0]
-        
-        return value_changed
+        GL.anim = True
+
+        s = 0
+        size = 3
+
+        for k in range(len(key)):
+            if set_fraction < key[k]:
+                k -= 1
+                s = (set_fraction - key[k]) / (key[k + 1] - key[k])
+                break
+
+        inter1 = (k) * size
+        inter2 = (k + 1) * size
+        inter3 = (k + 2) * size
+        inter4 = (k - 1) * size
+
+        if inter2 >= len(keyValue):
+            if closed:
+                inter2 = 0
+                inter3 = size
+            else:
+                 return [0, 0, 0]
+
+        if inter3 >= len(keyValue):
+            if not closed: 
+                inter3 = 0
+            else:
+                return [0, 0, 0]
+
+        if inter4 >= 0:
+            inter4 = keyValue[inter4 : inter4 + size]
+        else:
+            inter4 = [0, 0, 0]
+
+        inter1 = keyValue[inter1 : inter1 + size]
+        inter2 = keyValue[inter2 : inter2 + size]
+        inter3 = keyValue[inter3 : inter3  + size]
+
+        T0 = []
+        T1 = []
+        for i in range(size):
+            T0.append((inter2[i] - inter4[i]) / 2)
+            T1.append((inter3[i] - inter1[i]) / 2)
+
+        hermite = np.matrix([
+            [2, -2, 1, 1], 
+            [-3, 3, -2, -1],
+            [0, 0, 1, 0],
+            [1, 0, 0, 0]
+        ])
+
+        S = np.matrix([[s ** 3, s ** 2, s, 1]])
+        C = np.matrix([inter1, inter2, T0, T1])
+
+        value_changed = np.dot(S, np.dot(hermite, C)).tolist()
+
+        return value_changed[0]
+
 
     @staticmethod
     def orientationInterpolator(set_fraction, key, keyValue):
@@ -680,6 +864,13 @@ class GL:
         value_changed = [0, 0, 1, 0]
 
         return value_changed
+
+
+    @staticmethod
+    def Max_min_tri(tri):
+        x = [tri[0][0], tri[1][0], tri[2][0]]
+        y = [tri[0][1], tri[1][1], tri[2][1]]
+        return [int(min(x)), int(max(x))+1, int(min(y)), int(max(y))+1]
 
     # Para o futuro (Não para versão atual do projeto.)
     def vertex_shader(self, shader):
